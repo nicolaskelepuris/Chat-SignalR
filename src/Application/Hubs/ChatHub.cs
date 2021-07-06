@@ -6,11 +6,13 @@ using Domain.Entities.Chats;
 using Domain.Extensions;
 using Domain.Interfaces;
 using Domain.Specifications.Chats;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Application.Hubs
 {
+    [Authorize]
     public class ChatHub : Hub
     {
         private static Dictionary<string, string> connectionMapping = new Dictionary<string, string>();
