@@ -1,10 +1,12 @@
 using Api.Extensions;
 using Api.Middlewares;
 using Application.Helpers;
+using Application.Hubs;
 using Domain.Interfaces;
 using Domain.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,6 +38,10 @@ namespace Api
             services.AddSwaggerApi(_configuration);
 
             services.AddMediator(_configuration);
+            
+            services.AddSignalR();
+
+            services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 
             services.AddHttpContextAccessor();
 
@@ -77,6 +83,7 @@ namespace Api
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapHub<ChatHub>("hubs/chat");
             });
         }
     }
