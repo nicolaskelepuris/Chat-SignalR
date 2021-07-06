@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Domain.Entities;
@@ -26,7 +27,7 @@ namespace Application.Hubs
         {
             var user = await _userManager.FindUserByEmailAsyncFromClaimsPrincipal(Context.User);
 
-            SaveUserOnConnectionMapping(user.Id);
+            SaveUserInConnectionMapping(user.Id);
 
             var rooms = await _unitOfWork.Repository<ChatRoom>().ListAsyncWithSpec(new GetChatRoomsForUserSpecification(user.Id));
 
@@ -36,7 +37,22 @@ namespace Application.Hubs
             }
         }
 
-        private void SaveUserOnConnectionMapping(string userId)
+        public override async Task OnDisconnectedAsync(Exception exception)
+        {
+            var user = await _userManager.FindUserByEmailAsyncFromClaimsPrincipal(Context.User);
+
+            RemoveUserFromConnectionMapping(user.Id);
+        }
+
+        private void RemoveUserFromConnectionMapping(string userId)
+        {
+            if (connectionMapping.ContainsKey(userId))
+            {
+                connectionMapping.Remove(userId);
+            }
+        }
+
+        private void SaveUserInConnectionMapping(string userId)
         {
             if (connectionMapping.ContainsKey(userId))
             {
