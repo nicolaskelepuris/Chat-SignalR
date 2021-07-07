@@ -1,7 +1,9 @@
 using Application.Requests.Users;
+using Application.Responses.Chats;
 using Application.Responses.Users;
 using AutoMapper;
 using Domain.Entities;
+using Domain.Entities.Chats;
 using Google.Apis.Auth;
 
 namespace Application.Helpers
@@ -11,6 +13,7 @@ namespace Application.Helpers
         public MappingProfiles()
         {
             User();
+            Chat();
         }
 
         private void User()
@@ -23,6 +26,10 @@ namespace Application.Helpers
 
             CreateMap<PostUserRequest, AppUser>()
                 .ForMember(p => p.UserName, v => v.MapFrom(p => p.Email));
+        }
+
+        private void Chat(){
+            CreateMap<ChatMessage, ChatMessageResponse>();
         }
     }
 }
