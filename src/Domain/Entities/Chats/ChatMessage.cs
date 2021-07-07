@@ -10,6 +10,6 @@ namespace Domain.Entities.Chats
         public AppUser Sender { get; set; }
         public string SenderId { get; set; }
         public ChatRoom Room { get; set; }
-        public Guid? RoomId { get; set; }
+        public Guid RoomId { get; set; }
     }
 }

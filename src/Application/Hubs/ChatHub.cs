@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Application.Responses.Chats;
 using AutoMapper;
@@ -22,6 +23,9 @@ namespace Application.Hubs
         private readonly UserManager<AppUser> _userManager;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+
+        const string RECEIVE_MESSAGE_METHOD = "ReceiveMessage";
+        const string OPEN_ROOM_METHOD = "OpenRoom";
 
         public ChatHub(UserManager<AppUser> userManager, IUnitOfWork unitOfWork, IMapper mapper)
         {
@@ -67,8 +71,11 @@ namespace Application.Hubs
                 Message = message,
                 SentAt = DateTime.UtcNow,
                 Sender = sender,
+                Room = chatRoom,
                 RoomId = chatRoom.Id
             };
+
+            _unitOfWork.Repository<ChatMessage>().Add(chatMessage);
 
             switch (chatRoom.Type)
             {
@@ -76,25 +83,82 @@ namespace Application.Hubs
                     await SendGlobalMessageAsync(chatMessage);
                     break;
                 case ChatRoomTypes.Private:
+                    await SendPrivateMessageAsync(chatMessage);
                     break;
                 default:
                     break;
             }
         }
 
+        private async Task SendPrivateMessageAsync(ChatMessage chatMessage)
+        {
+            var receiverChatUser = await _unitOfWork.Repository<ChatUser>().GetEntityAsyncWithSpec(
+                new GetMessageReceiverChatUserSpecification(chatMessage.SenderId, chatMessage.RoomId));
+
+            if (receiverChatUser == null)
+            {
+                return;
+            }
+
+            var receiverClosedChat = receiverChatUser.ClosedChat;
+
+            UpdateChatUserWithNewMessage(receiverChatUser);
+
+            await _unitOfWork.Complete();
+
+            if (receiverClosedChat)
+            {
+                await SendPrivateMessageToUserWithClosedChatAsync(chatMessage);
+            }
+            else
+            {
+                await SendReceiveMessageMethodToOthersInRoomAsync(chatMessage);
+            }
+
+            await SendReceiveMessageMethodToCallerAsync(chatMessage);
+        }
+
+        private async Task SendPrivateMessageToUserWithClosedChatAsync(ChatMessage chatMessage)
+        {
+            await SendOpenRoomMethodToOthersInRoomAsync(chatMessage.RoomId);
+        }
+
+        private async Task SendOpenRoomMethodToOthersInRoomAsync(Guid roomId)
+        {
+            await Clients.OthersInGroup(roomId.ToString()).SendAsync(OPEN_ROOM_METHOD, roomId);
+        }
+
+        private async Task SendReceiveMessageMethodToCallerAsync(ChatMessage chatMessage)
+        {
+            var response = _mapper.Map<ChatMessageResponse>(chatMessage);
+            response.IsSender = true;
+
+            await Clients.Caller.SendAsync(RECEIVE_MESSAGE_METHOD, response, chatMessage.RoomId);
+        }
+
+        private async Task SendReceiveMessageMethodToOthersInRoomAsync(ChatMessage chatMessage)
+        {
+            var response = _mapper.Map<ChatMessageResponse>(chatMessage);
+
+            await Clients.OthersInGroup(chatMessage.RoomId.ToString()).SendAsync(RECEIVE_MESSAGE_METHOD, response, chatMessage.RoomId);
+        }
+
+        private void UpdateChatUserWithNewMessage(ChatUser chatUser)
+        {
+            chatUser.HasNewMessage = true;
+            chatUser.ClosedChat = false;
+            _unitOfWork.Repository<ChatUser>().Update(chatUser);
+        }
+
         private async Task SendGlobalMessageAsync(ChatMessage chatMessage)
         {
-            _unitOfWork.Repository<ChatMessage>().Add(chatMessage);
-
             await _unitOfWork.Complete();
 
             var response = _mapper.Map<ChatMessageResponse>(chatMessage);
 
-            await Clients.OthersInGroup(chatMessage.RoomId.ToString()).SendAsync("ReceiveMessage", response, chatMessage.RoomId);
+            await SendReceiveMessageMethodToOthersInRoomAsync(chatMessage);
 
-            response.IsSender = true;
-
-            await Clients.Caller.SendAsync("ReceiveMessage", response, chatMessage.RoomId);
+            await SendReceiveMessageMethodToCallerAsync(chatMessage);
         }
 
         private void RemoveUserFromConnectionMapping(string userId)
