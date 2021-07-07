@@ -26,6 +26,7 @@ namespace Api
                 {
                     var identityContext = services.GetRequiredService<AppIdentityDbContext>();
                     await identityContext.Database.MigrateAsync();
+                    await AppIdentityDbContextSeed.SeedAsync(identityContext);
                 }
                 catch (Exception ex)
                 {
