@@ -10,15 +10,10 @@ namespace Api.Extensions
     {
         public static IServiceCollection AddMediator(this IServiceCollection services, IConfiguration configuration)
         {
-            var applicationSettings = new ApplicationSettings();
-            configuration.GetSection("Application").Bind(applicationSettings);
+            var appName = configuration["Application:ApplicationName"];
+            var assembly = configuration["Application:Assembly"];
 
-            if (applicationSettings == null)
-                throw new ArgumentNullException(nameof(applicationSettings));
-
-            foreach (var assembly in applicationSettings.Assemblies){
-                services.AddMediatR(AppDomain.CurrentDomain.Load(applicationSettings.ApplicationName).GetType(assembly));
-            }
+            services.AddMediatR(AppDomain.CurrentDomain.Load(appName).GetType(assembly));
 
             return services;
         }
