@@ -8,6 +8,7 @@ using Domain.Entities;
 using Domain.Entities.Chats;
 using Domain.Enums;
 using Domain.Extensions;
+using Domain.Helpers;
 using Domain.Interfaces;
 using Domain.Specifications.Chats;
 using Microsoft.AspNetCore.Authorization;
@@ -36,11 +37,11 @@ namespace Application.Hubs
 
         public override async Task OnConnectedAsync()
         {
-            var user = await _userManager.FindUserByEmailAsyncFromClaimsPrincipal(Context.User);
+            var userId = ContextHelper.GetUserIdFromClaimsPrincipal(Context.User);
 
-            SaveUserInConnectionMapping(user.Id);
+            SaveUserInConnectionMapping(userId);
 
-            var rooms = await _unitOfWork.Repository<ChatRoom>().ListAsyncWithSpec(new GetChatRoomsForUserSpecification(user.Id));
+            var rooms = await _unitOfWork.Repository<ChatRoom>().ListAsyncWithSpec(new GetChatRoomsForUserSpecification(userId));
 
             foreach (var room in rooms)
             {
@@ -48,11 +49,13 @@ namespace Application.Hubs
             }
         }
 
-        public override async Task OnDisconnectedAsync(Exception exception)
+        public override Task OnDisconnectedAsync(Exception exception)
         {
-            var user = await _userManager.FindUserByEmailAsyncFromClaimsPrincipal(Context.User);
+            var userId = ContextHelper.GetUserIdFromClaimsPrincipal(Context.User);
 
-            RemoveUserFromConnectionMapping(user.Id);
+            RemoveUserFromConnectionMapping(userId);
+
+            return Task.CompletedTask;
         }
 
         public async Task SendMessage(string message, Guid roomId)
@@ -90,7 +93,7 @@ namespace Application.Hubs
             }
         }
 
-        public async Task LeaveRoom(Guid roomId)
+        public async Task LeavePrivateRoom(Guid roomId)
         {
             var user = await _userManager.FindUserByEmailAsyncFromClaimsPrincipal(Context.User);
 
@@ -113,6 +116,85 @@ namespace Application.Hubs
 
             _unitOfWork.Repository<ChatUser>().Update(chatUser);
             await _unitOfWork.Complete();
+        }
+
+        public async Task JoinPrivateRoom(string targetUserId)
+        {
+            var user = await _userManager.FindUserByEmailAsyncFromClaimsPrincipal(Context.User);
+
+            if (user.Id == targetUserId)
+            {
+                return;
+            }
+
+            var targetUser = await _userManager.FindByIdAsync(targetUserId);
+
+            if (targetUser == null)
+            {
+                return;
+            }
+
+            var chatRoom = await _unitOfWork.Repository<ChatRoom>()
+                .GetEntityAsyncWithSpec(new GetPrivateChatRoomByUsersIdsSpecification(user.Id, targetUser.Id));
+
+            if (chatRoom == null)
+            {
+                chatRoom = await CreatePrivateRoomAsync(user, targetUser);
+            }
+            else
+            {
+                await OpenUserChatAsync(user.Id, chatRoom.Id);
+            }
+
+            await AddUserToGroupAsync(user.Id, chatRoom.Id);
+
+            await AddUserToGroupAsync(targetUserId, chatRoom.Id);
+
+            await SendOpenRoomMethodToCallerAsync(chatRoom.Id);
+        }
+
+        private async Task AddUserToGroupAsync(string userId, Guid roomId)
+        {
+            if (connectionMapping.ContainsKey(userId))
+            {
+                await Groups.AddToGroupAsync(connectionMapping[userId], roomId.ToString());
+            }
+        }
+
+        private async Task OpenUserChatAsync(string userId, Guid roomId)
+        {
+            var chatUser = await _unitOfWork.Repository<ChatUser>().GetEntityAsyncWithSpec(new GetChatUserByUserIdAndRoomId(userId, roomId));
+
+            if (chatUser != null)
+            {
+                chatUser.ClosedChat = false;
+                _unitOfWork.Repository<ChatUser>().Update(chatUser);
+                await _unitOfWork.Complete();
+            }
+        }
+
+        private async Task<ChatRoom> CreatePrivateRoomAsync(AppUser sender, AppUser receiver)
+        {
+            var chatRoom = new ChatRoom()
+            {
+                Type = ChatRoomTypes.Private,
+                Users = new List<ChatUser>()
+                {
+                    new ChatUser()
+                    {
+                        User = sender
+                    },
+                    new ChatUser()
+                    {
+                        User = receiver
+                    }
+                },
+            };
+
+            _unitOfWork.Repository<ChatRoom>().Add(chatRoom);
+            await _unitOfWork.Complete();
+
+            return chatRoom;
         }
 
         private async Task SendPrivateMessageAsync(ChatMessage chatMessage)
@@ -151,6 +233,11 @@ namespace Application.Hubs
         private async Task SendOpenRoomMethodToOthersInRoomAsync(Guid roomId)
         {
             await Clients.OthersInGroup(roomId.ToString()).SendAsync(OPEN_ROOM_METHOD, roomId);
+        }
+
+        private async Task SendOpenRoomMethodToCallerAsync(Guid roomId)
+        {
+            await Clients.Caller.SendAsync(OPEN_ROOM_METHOD, roomId);
         }
 
         private async Task SendReceiveMessageMethodToCallerAsync(ChatMessage chatMessage)
