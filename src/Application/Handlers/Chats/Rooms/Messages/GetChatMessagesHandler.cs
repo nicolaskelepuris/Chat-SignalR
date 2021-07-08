@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Requests.Chats.Rooms.Messages;
@@ -43,6 +44,8 @@ namespace Application.Handlers.Chats.Rooms.Messages
             var chatMessages = await _unitOfWork.Repository<ChatMessage>().ListAsyncWithSpec(new GetChatMessagesWithPaginationSpecification(request.Pagination, request.RoomId));
 
             var count = await _unitOfWork.Repository<ChatMessage>().CountAsync(new GetChatMessagesForCountSpecification(request.RoomId));
+
+            chatMessages = chatMessages.OrderBy(p => p.SentAt).ToList();
 
             return new PaginationResponse<ChatMessageResponse>()
             {
