@@ -23,5 +23,12 @@ namespace Api.Controllers
         {
             return await CreateResponse(async () => await _mediator.Send(request));
         }
+
+        [HttpGet("{Id}")]
+        [ProducesResponseType(typeof(ApiResponse<UserResponse>), 200)]
+        public async Task<IActionResult> GetUserById([FromRoute] GetUserRequest request)
+        {
+            return await CreateResponse(async () => await _mediator.Send(request));
+        }
     }
 }
