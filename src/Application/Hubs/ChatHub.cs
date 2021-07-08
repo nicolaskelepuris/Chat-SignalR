@@ -90,6 +90,31 @@ namespace Application.Hubs
             }
         }
 
+        public async Task LeaveRoom(Guid roomId)
+        {
+            var user = await _userManager.FindUserByEmailAsyncFromClaimsPrincipal(Context.User);
+
+            var chatRoom = await _unitOfWork.Repository<ChatRoom>().GetEntityAsyncWithSpec(new GetChatRoomByIdForUserSpecification(user.Id, roomId));
+
+            if (chatRoom == null || chatRoom.Type == ChatRoomTypes.Global)
+            {
+                return;
+            }
+
+            var chatUser = await _unitOfWork.Repository<ChatUser>().GetEntityAsyncWithSpec(new GetChatUserByUserIdAndRoomId(user.Id, roomId));
+
+            if (chatUser == null)
+            {
+                return;
+            }
+
+            chatUser.ClosedChat = true;
+            chatUser.HasNewMessage = false;
+
+            _unitOfWork.Repository<ChatUser>().Update(chatUser);
+            await _unitOfWork.Complete();
+        }
+
         private async Task SendPrivateMessageAsync(ChatMessage chatMessage)
         {
             var receiverChatUser = await _unitOfWork.Repository<ChatUser>().GetEntityAsyncWithSpec(
