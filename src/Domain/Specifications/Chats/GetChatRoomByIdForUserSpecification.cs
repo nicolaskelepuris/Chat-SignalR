@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using Domain.Entities.Chats;
+using Domain.Enums;
 using Domain.Specifications.Base;
 
 namespace Domain.Specifications.Chats
@@ -18,7 +19,11 @@ namespace Domain.Specifications.Chats
             return chatRoom =>
                 chatRoom.Id == roomId
                 &&
-                chatRoom.Users.Any(u => u.UserId == userId && (!u.ClosedChat || u.HasNewMessage));
+                (
+                    chatRoom.Users.Any(u => u.UserId == userId && (!u.ClosedChat || u.HasNewMessage))
+                    ||
+                    chatRoom.Type == ChatRoomTypes.Global
+                );
         }
     }
 }
