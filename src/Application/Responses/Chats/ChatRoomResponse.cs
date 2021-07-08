@@ -9,7 +9,6 @@ namespace Application.Responses.Chats
     {
         public Guid Id { get; set; }
         public List<UserResponse> Users { get; set; }
-        public List<ChatMessageResponse> Messages { get; set; }
         public ChatRoomTypes Type { get; set; }
     }
 }

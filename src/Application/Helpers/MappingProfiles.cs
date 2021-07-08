@@ -1,3 +1,4 @@
+using System.Linq;
 using Application.Requests.Users;
 using Application.Responses.Chats;
 using Application.Responses.Users;
@@ -30,6 +31,8 @@ namespace Application.Helpers
 
         private void Chat(){
             CreateMap<ChatMessage, ChatMessageResponse>();
+            CreateMap<ChatRoom, ChatRoomResponse>()
+                .ForMember(p => p.Users, v => v.MapFrom(p => p.Users.Select(u => u.User)));
         }
     }
 }
