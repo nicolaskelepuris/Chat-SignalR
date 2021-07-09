@@ -5,7 +5,6 @@ using Application.Responses.Users;
 using AutoMapper;
 using Domain.Entities;
 using Domain.Entities.Chats;
-using Google.Apis.Auth;
 
 namespace Application.Helpers
 {
@@ -20,10 +19,6 @@ namespace Application.Helpers
         private void User()
         {
             CreateMap<AppUser, UserResponse>();
-
-            CreateMap<GoogleJsonWebSignature.Payload, AppUser>()
-                .ForMember(p => p.EmailConfirmed, v => v.MapFrom(p => p.EmailVerified))
-                .ForMember(p => p.UserName, v => v.MapFrom(p => p.Email));
 
             CreateMap<PostUserRequest, AppUser>()
                 .ForMember(p => p.UserName, v => v.MapFrom(p => p.Email));

@@ -16,14 +16,6 @@ namespace Api.Controllers
         {
         }
 
-        [HttpPost("login-google")]
-        [AllowAnonymous]
-        [ProducesResponseType(typeof(ApiResponse<LoginResponse>), 200)]
-        public async Task<IActionResult> LoginGoogle([FromBody] LoginGoogleRequest request)
-        {
-            return await CreateResponse(async () => await _mediator.Send(request));
-        }
-
         [HttpPost("login")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<LoginResponse>), 200)]
