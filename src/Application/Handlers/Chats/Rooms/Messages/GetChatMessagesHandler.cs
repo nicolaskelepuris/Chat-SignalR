@@ -47,6 +47,13 @@ namespace Application.Handlers.Chats.Rooms.Messages
 
             chatMessages = chatMessages.OrderBy(p => p.SentAt).ToList();
 
+            var messagesResponse = _mapper.Map<IReadOnlyList<ChatMessageResponse>>(chatMessages);
+
+            foreach (var message in messagesResponse)
+            {
+                message.IsSender = message.Sender.Id == userId;
+            }
+
             return new PaginationResponse<ChatMessageResponse>()
             {
                 Items = _mapper.Map<IReadOnlyList<ChatMessageResponse>>(chatMessages),
