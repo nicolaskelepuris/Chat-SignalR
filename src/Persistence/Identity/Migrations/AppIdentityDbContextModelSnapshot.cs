@@ -152,8 +152,7 @@ namespace Persistence.Identity.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.HasIndex("UserId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("ChatUsers");
                 });
@@ -317,8 +316,8 @@ namespace Persistence.Identity.Migrations
                         .IsRequired();
 
                     b.HasOne("Domain.Entities.AppUser", "User")
-                        .WithOne()
-                        .HasForeignKey("Domain.Entities.Chats.ChatUser", "UserId")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

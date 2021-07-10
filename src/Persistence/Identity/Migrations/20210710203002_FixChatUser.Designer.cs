@@ -10,8 +10,8 @@ using Persistence.Identity;
 namespace Persistence.Identity.Migrations
 {
     [DbContext(typeof(AppIdentityDbContext))]
-    [Migration("20210707232543_ChangeChatMessageRoomIdToRequired")]
-    partial class ChangeChatMessageRoomIdToRequired
+    [Migration("20210710203002_FixChatUser")]
+    partial class FixChatUser
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -45,6 +45,9 @@ namespace Persistence.Identity.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Nickname")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -151,8 +154,7 @@ namespace Persistence.Identity.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.HasIndex("UserId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("ChatUsers");
                 });
@@ -316,8 +318,8 @@ namespace Persistence.Identity.Migrations
                         .IsRequired();
 
                     b.HasOne("Domain.Entities.AppUser", "User")
-                        .WithOne()
-                        .HasForeignKey("Domain.Entities.Chats.ChatUser", "UserId")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

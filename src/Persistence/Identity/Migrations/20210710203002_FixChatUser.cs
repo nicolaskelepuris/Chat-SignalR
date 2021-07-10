@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Persistence.Identity.Migrations
 {
-    public partial class InitialMigration : Migration
+    public partial class FixChatUser : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -26,6 +26,7 @@ namespace Persistence.Identity.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Nickname = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -44,6 +45,18 @@ namespace Persistence.Identity.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ChatRooms",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChatRooms", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -152,6 +165,59 @@ namespace Persistence.Identity.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "ChatMessages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Message = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SenderId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    RoomId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChatMessages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ChatMessages_AspNetUsers_SenderId",
+                        column: x => x.SenderId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ChatMessages_ChatRooms_RoomId",
+                        column: x => x.RoomId,
+                        principalTable: "ChatRooms",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ChatUsers",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    RoomId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ClosedChat = table.Column<bool>(type: "bit", nullable: false),
+                    HasNewMessage = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChatUsers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ChatUsers_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ChatUsers_ChatRooms_RoomId",
+                        column: x => x.RoomId,
+                        principalTable: "ChatRooms",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -190,6 +256,26 @@ namespace Persistence.Identity.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatMessages_RoomId",
+                table: "ChatMessages",
+                column: "RoomId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatMessages_SenderId",
+                table: "ChatMessages",
+                column: "SenderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatUsers_RoomId",
+                table: "ChatUsers",
+                column: "RoomId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatUsers_UserId",
+                table: "ChatUsers",
+                column: "UserId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -210,10 +296,19 @@ namespace Persistence.Identity.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "ChatMessages");
+
+            migrationBuilder.DropTable(
+                name: "ChatUsers");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "ChatRooms");
         }
     }
 }

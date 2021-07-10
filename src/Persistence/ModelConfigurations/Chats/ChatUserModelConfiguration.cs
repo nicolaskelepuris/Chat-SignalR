@@ -12,8 +12,8 @@ namespace Persistence.ModelConfigurations.Chats
             base.Configure(builder);
 
             builder.HasOne(fk => fk.User)
-                .WithOne()
-                .HasForeignKey("ChatUser")
+                .WithMany()
+                .HasForeignKey(fk => fk.UserId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
 
