@@ -32,6 +32,13 @@ namespace Api.Controllers
             return await CreateResponse(async () => await _mediator.Send(request));
         }
 
+        [HttpGet("{Id}")]
+        [ProducesResponseType(typeof(ApiResponse<ChatRoomResponse>), 200)]
+        public async Task<IActionResult> GetChatRoom([FromRoute] GetChatRoomRequest request)
+        {
+            return await CreateResponse(async () => await _mediator.Send(request));
+        }
+
         [HttpGet("{id}/messages")]
         [ProducesResponseType(typeof(ApiResponse<PaginationResponse<ChatMessageResponse>>), 200)]
         public async Task<IActionResult> GetChatMessages([FromQuery] PaginationParams pagination, [FromRoute] Guid id)
