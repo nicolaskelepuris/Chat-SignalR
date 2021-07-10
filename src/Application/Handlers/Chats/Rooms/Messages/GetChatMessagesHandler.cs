@@ -56,7 +56,7 @@ namespace Application.Handlers.Chats.Rooms.Messages
 
             return new PaginationResponse<ChatMessageResponse>()
             {
-                Items = _mapper.Map<IReadOnlyList<ChatMessageResponse>>(chatMessages),
+                Items = messagesResponse,
                 Page = request.Pagination.PageIndex,
                 PageSize = request.Pagination.PageSize,
                 ItemsCount = count
