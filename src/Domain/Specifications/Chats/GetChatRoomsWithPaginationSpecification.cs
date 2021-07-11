@@ -14,6 +14,7 @@ namespace Domain.Specifications.Chats
         {
             Criteria = CreateCriteria(userId);
             AddInclude("Users.User");
+            AddOrderByDescending(r => r.Type);
             ApplyPaging(paginationParams.PageSize * (paginationParams.PageIndex - 1), paginationParams.PageSize);
         }
 
